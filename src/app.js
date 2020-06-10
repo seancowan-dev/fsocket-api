@@ -15,7 +15,7 @@ const morganOption = (NODE_ENV === 'production')
 app.use(morgan(morganOption));
 app.use(helmet());
 app.use(cors({
-    origin: "https://fsocket-client.now.sh/",
+    origin: "https://fsocket-client.now.sh",
     credentials: true
 }));
 
