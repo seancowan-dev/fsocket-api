@@ -3,10 +3,10 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
-const { NODE_ENV } = require('./config');
-const app = express();
-const { PORT } = require('./config');
 const fetch = require('node-fetch')
+const { NODE_ENV, SERVER_URL, PORT } = require('./config');
+const app = express();
+
 
 const morganOption = (NODE_ENV === 'production')
   ? 'tiny'
@@ -15,7 +15,7 @@ const morganOption = (NODE_ENV === 'production')
 app.use(morgan(morganOption));
 app.use(helmet());
 app.use(cors({
-    origin: "http://localhost:3000",
+    origin: "https://fsocket-client.now.sh/",
     credentials: true
 }));
 
@@ -28,7 +28,7 @@ async function getUserIP() {
 }
 
 server.listen(PORT, () => {
-    console.log(`Server listening at https://${process.env.VERCEL_URL}:${PORT}`)
+    console.log(`Server listening at https://${SERVER_URL}:${PORT}`)
   });
 // WARNING: app.listen(80) will NOT work here!
 
