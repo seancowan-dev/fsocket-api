@@ -4,7 +4,7 @@ const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
 const fetch = require('node-fetch')
-const { NODE_ENV, SERVER_URL, PORT } = require('./config');
+const { NODE_ENV, SERVER_URL, ORIGIN_URL, PORT } = require('./config');
 const app = express();
 
 
@@ -15,7 +15,7 @@ const morganOption = (NODE_ENV === 'production')
 app.use(morgan(morganOption));
 app.use(helmet());
 app.use(cors({
-    origin: "https://fsocket-client.now.sh/",
+    origin: ORIGIN_URL,
     credentials: true
 }));
 
