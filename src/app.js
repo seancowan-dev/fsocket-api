@@ -15,7 +15,7 @@ const morganOption = (NODE_ENV === 'production')
 app.use(morgan(morganOption));
 app.use(helmet());
 app.use(cors({
-    origin: "https://fsocket-client.now.sh",
+    origin: "http://localhost:3000",
     credentials: true
 }));
 
@@ -28,7 +28,7 @@ async function getUserIP() {
 }
 
 server.listen(PORT, () => {
-    console.log(`Server listening at http://localhost:${PORT}`)
+    console.log(`Server listening at https://${process.env.VERCEL_URL}:${PORT}`)
   });
 // WARNING: app.listen(80) will NOT work here!
 
