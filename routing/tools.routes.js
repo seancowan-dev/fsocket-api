@@ -10,7 +10,7 @@ const bodyParser = express.json(); // Required Boilerplate --end
 
 toolsRouter.route('/getIP')
            .get((req, res, next) => {
-                ToolsService.getUserIP(req.connection.remoteAddress).then(toolRes => {
+                ToolsService.getUserIP(req.headers['x-forwarded-for']).then(toolRes => {
                     res.status(200).send(toolRes);
                 }).catch(next);
            })
