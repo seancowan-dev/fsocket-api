@@ -1,11 +1,12 @@
-require('dotenv').config();
+require('dotenv').config();  // Required Boilerplate --start
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
-const fetch = require('node-fetch')
 const { NODE_ENV, SERVER_URL, ORIGIN_URL, PORT } = require('./config');
-const app = express();
+const app = express();  // Required Boilerplate --end
+
+const toolsRouter = require('../routing/tools.routes'); // Routing Import --start
 
 
 const morganOption = (NODE_ENV === 'production')
@@ -14,7 +15,7 @@ const morganOption = (NODE_ENV === 'production')
 
 app.use(morgan(morganOption));
 app.use(helmet());
-app.use(cors({
+app.use(cors({   
     origin: ORIGIN_URL,
     credentials: true
 }));
@@ -22,25 +23,11 @@ app.use(cors({
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
 
-async function getUserIP() {
-  let json = await fetch('http://ip-api.com/json');
-  return json.json();
-}
-
 server.listen(PORT, () => {
-    console.log(`Server listening at https://${SERVER_URL}:${PORT}`)
-  });
-// WARNING: app.listen(80) will NOT work here!
-
-app.get('/', (req, res) => {
-  res.send("got it"); 
+    console.log(`Server listening at ${SERVER_URL}`)
 });
 
-app.get('/getIP', (req, res) => {
-  getUserIP().then(response => {
-    res.send(response);
-  })
-})
+app.use('/site/tools', toolsRouter);
 
 io.on('connection', (socket) => {
   socket.emit('news', { hello: 'world' });
