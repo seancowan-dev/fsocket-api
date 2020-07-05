@@ -3,10 +3,12 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
+const serializers = require('../serializers/serializers');
 const { NODE_ENV, SERVER_URL, ORIGIN_URL, PORT } = require('./config');
+const SocketDBService = require('../db_services/socket.database.service');
 const app = express();  // Required Boilerplate --end
-
 const toolsRouter = require('../routing/tools.routes'); // Routing Import --start
+const { serialRoomOut } = require('../serializers/serializers');
 
 
 const morganOption = (NODE_ENV === 'production')
@@ -30,10 +32,24 @@ server.listen(PORT, () => {
 app.use('/site/tools', toolsRouter);
 
 io.on('connection', (socket) => {
-  socket.emit('news', { hello: 'world' });
-  socket.on('my other event', (data) => {
-    console.log(data);
+  let database = app.get('db')
+  socket.emit('connected', { message: 'Socket Connected' });
+  socket.on('createRoom', (serialized) => {
+    SocketDBService.addRoom(database, serialized).then(result => {
+        io.emit('roomCreated', result);
+    }); 
   });
+  socket.on('getAllRooms', () => {
+    SocketDBService.getAllRooms(database).then(result => {
+      io.emit('receiveAllRooms', result);
+    });
+  });
+  socket.on('addUserToRoom', (serialUser) => {
+    console.log(serialUser);
+    SocketDBService.addUserToRoom(database, serialUser).then(result => {
+      io.emit('userAddedToRoom', serialUser)
+    })
+  })
 });
 
 
