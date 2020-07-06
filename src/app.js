@@ -31,23 +31,23 @@ server.listen(PORT, () => {
 
 app.use('/site/tools', toolsRouter);
 
-io.on('connection', (socket) => {
+io.sockets.on('connection', (socket) => {
   let database = app.get('db')
   socket.emit('connected', { message: 'Socket Connected' });
   socket.on('createRoom', (serialized) => {
     SocketDBService.addRoom(database, serialized).then(result => {
-        io.emit('roomCreated', result);
+        io.sockets.emit('roomCreated', result);
     }); 
   });
   socket.on('getAllRooms', () => {
     SocketDBService.getAllRooms(database).then(result => {
-      io.emit('receiveAllRooms', result);
+      io.sockets.emit('receiveAllRooms', result);
     });
   });
   socket.on('addUserToRoom', (serialUser) => {
     console.log(serialUser);
     SocketDBService.addUserToRoom(database, serialUser).then(result => {
-      io.emit('userAddedToRoom', serialUser)
+      io.sockets.emit('userAddedToRoom', serialUser)
     })
   })
 });
