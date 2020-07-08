@@ -31,57 +31,57 @@ server.listen(PORT, () => {
 
 app.use('/site/tools', toolsRouter);
 
-io.on('connection', (socket) => {
+io.sockets.on('connection', (socket) => {
   let database = app.get('db')
   socket.emit('connected', { message: 'Socket Connected' });
   socket.on('createRoom', (serialized) => {
     SocketDBService.addRoom(database, serialized).then(result => {
       SocketDBService.getRoom(database, serialized.name).then(result => {
-        io.emit('roomCreated', result);
+        io.sockets.emit('roomCreated', result);
       });
     }); 
   });
   socket.on('deleteRoom', (id) => {
     SocketDBService.deleteRoom(database, id).then(result => {
-      io.emit('roomDeleted', id);
+      io.sockets.emit('roomDeleted', id);
     });
   });
   socket.on('getAllRooms', () => {
     SocketDBService.getAllRooms(database).then(result => {
-      io.emit('receiveAllRooms', result);
+      io.sockets.emit('receiveAllRooms', result);
     });
   });
   socket.on('addUserToRoom', (serialUser) => {
     SocketDBService.addUserToRoom(database, serialUser).then(result => {
-      io.emit('userAddedToRoom', serialUser);
+      io.sockets.emit('userAddedToRoom', serialUser);
     })
     .catch(err => {
-      io.emit('userAddedToRoom', false);
+      io.sockets.emit('userAddedToRoom', false);
     })
   });
   socket.on('removeUserFromRoom', (serialUser) => {
     SocketDBService.removeRoomMember(database, serialUser.room_id, serialUser.user_id).then(result => {
-      io.emit('removedUserFromRoom', serialUser);
+      io.sockets.emit('removedUserFromRoom', serialUser);
     })
     .catch(err => {
-      io.emit('removedUserFromRoom', false);
+      io.sockets.emit('removedUserFromRoom', false);
     })
   });
   socket.on('getRoomMessages', (room_id) => {
     SocketDBService.getRoomMessages(database, room_id).then(result => {
       console.log(result);
-      io.emit('receiveMessages', result);
+      io.sockets.emit('receiveMessages', result);
     })
     .catch(err => {
-      io.emit('receiveMessages', false);
+      io.sockets.emit('receiveMessages', false);
     })
   });
   socket.on('sendMessage', (serialMessage) => {
     SocketDBService.sendMessage(database, serialMessage).then(result => {
-      io.emit('messageSent', result);
+      io.sockets.emit('messageSent', result);
     })
     .catch(err => {
-      io.emit('messageSent', false);
+      io.sockets.emit('messageSent', false);
     })
   });
 });
