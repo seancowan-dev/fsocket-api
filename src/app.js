@@ -31,25 +31,59 @@ server.listen(PORT, () => {
 
 app.use('/site/tools', toolsRouter);
 
-io.sockets.on('connection', (socket) => {
+io.on('connection', (socket) => {
   let database = app.get('db')
   socket.emit('connected', { message: 'Socket Connected' });
   socket.on('createRoom', (serialized) => {
     SocketDBService.addRoom(database, serialized).then(result => {
-        io.sockets.emit('roomCreated', result);
+      SocketDBService.getRoom(database, serialized.name).then(result => {
+        io.emit('roomCreated', result);
+      });
     }); 
+  });
+  socket.on('deleteRoom', (id) => {
+    SocketDBService.deleteRoom(database, id).then(result => {
+      io.emit('roomDeleted', id);
+    });
   });
   socket.on('getAllRooms', () => {
     SocketDBService.getAllRooms(database).then(result => {
-      io.sockets.emit('receiveAllRooms', result);
+      io.emit('receiveAllRooms', result);
     });
   });
   socket.on('addUserToRoom', (serialUser) => {
-    console.log(serialUser);
     SocketDBService.addUserToRoom(database, serialUser).then(result => {
-      io.sockets.emit('userAddedToRoom', serialUser)
+      io.emit('userAddedToRoom', serialUser);
     })
-  })
+    .catch(err => {
+      io.emit('userAddedToRoom', false);
+    })
+  });
+  socket.on('removeUserFromRoom', (serialUser) => {
+    SocketDBService.removeRoomMember(database, serialUser.room_id, serialUser.user_id).then(result => {
+      io.emit('removedUserFromRoom', serialUser);
+    })
+    .catch(err => {
+      io.emit('removedUserFromRoom', false);
+    })
+  });
+  socket.on('getRoomMessages', (room_id) => {
+    SocketDBService.getRoomMessages(database, room_id).then(result => {
+      console.log(result);
+      io.emit('receiveMessages', result);
+    })
+    .catch(err => {
+      io.emit('receiveMessages', false);
+    })
+  });
+  socket.on('sendMessage', (serialMessage) => {
+    SocketDBService.sendMessage(database, serialMessage).then(result => {
+      io.emit('messageSent', result);
+    })
+    .catch(err => {
+      io.emit('messageSent', false);
+    })
+  });
 });
 
 
