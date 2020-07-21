@@ -6,10 +6,10 @@ const helmet = require('helmet');
 const serializers = require('../serializers/serializers');
 const { NODE_ENV, SERVER_URL, ORIGIN_URL, PORT } = require('./config');
 const SocketDBService = require('../db_services/socket.database.service');
+const YouTubeService = require('../services/youtube.service');
 const app = express();  // Required Boilerplate --end
 const toolsRouter = require('../routing/tools.routes'); // Routing Import --start
 const { serialRoomOut } = require('../serializers/serializers');
-
 
 const morganOption = (NODE_ENV === 'production')
   ? 'tiny'
@@ -57,7 +57,7 @@ io.sockets.on('connection', (socket) => {
     })
     .catch(err => {
       io.sockets.emit('userAddedToRoom', false);
-    })
+    });
   });
   socket.on('removeUserFromRoom', (serialUser) => {
     SocketDBService.removeRoomMember(database, serialUser.room_id, serialUser.user_id).then(result => {
@@ -65,16 +65,15 @@ io.sockets.on('connection', (socket) => {
     })
     .catch(err => {
       io.sockets.emit('removedUserFromRoom', false);
-    })
+    });
   });
   socket.on('getRoomMessages', (room_id) => {
     SocketDBService.getRoomMessages(database, room_id).then(result => {
-      console.log(result);
       io.sockets.emit('receiveMessages', result);
     })
     .catch(err => {
       io.sockets.emit('receiveMessages', false);
-    })
+    });
   });
   socket.on('sendMessage', (serialMessage) => {
     SocketDBService.sendMessage(database, serialMessage).then(result => {
@@ -82,7 +81,33 @@ io.sockets.on('connection', (socket) => {
     })
     .catch(err => {
       io.sockets.emit('messageSent', false);
+    });
+  });
+  socket.on('addToPlaylist', (serialPlaylistEntry) => {
+    let vidPath = YouTubeService.saveVideoStreamYT(serialPlaylistEntry.room_id, serialPlaylistEntry.video_url);
+    serialPlaylistEntry.video_path = vidPath;
+    
+    let { room_id, video_path } = serialPlaylistEntry;
+
+    let addToDB = {
+      room_id: room_id,
+      video_path: video_path
+    }
+
+    SocketDBService.addPlaylistEntry(database, addToDB).then(result => {
+      io.sockets.emit('playlistEntryAdded', result);
     })
+    .catch(err => {
+      io.sockets.emit('playistEntryAdded', false);
+    });
+  });
+  socket.on('getPlaylist', (room_id) => {
+    SocketDBService.getPlaylistEntries(database, room_id).then(result => {
+      io.sockets.emit('retrievedPlaylist', result);
+      })
+      .catch(err => {
+        io.sockets.emit('retrievedPlaylist', false);
+    });
   });
 });
 

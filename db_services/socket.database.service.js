@@ -69,6 +69,21 @@ const SocketDBService = {
         .from('user_messages')
         .select('*')
         .where({ room_id })
+    },
+    addPlaylistEntry(knex, serial) {
+        console.log("reached the addPlaylistEntry: " + serial);
+        return knex
+        .insert(serial)
+        .into('room_playlist')
+        .returning('*')
+        .then(rows => {
+            return rows[0];
+        });
+    },
+    getPlaylistEntries(knex, room_id) {
+        return knex
+        .from('room_playlist')
+        .where({ room_id })
     }
 }
 
