@@ -18,7 +18,7 @@ const SocketDBService = {
         WHERE r.name = '${name}'
         ORDER BY r.id`)
     },
-    getAllRooms(knex) {
+    getAllRooms(knex) { // This function performs of a full join of all entries user_rooms and room_members, this data is later parsed by the client
         return knex.raw(`SELECT r.id, r.name, r.owner, r.description, r.password, r.created_at, m.id as member_id, m.user_id, m.room_id
         FROM user_rooms r
         FULL JOIN room_members m

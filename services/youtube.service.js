@@ -15,7 +15,7 @@ const YouTubeService = {
             });
         }
     },
-    saveVideoStreamYT(room_id, url) {
+    saveVideoStreamYT(room_id, url, serialPlaylistEntry) {
         let dir = `./${room_id}/youtube`; // Set the dir for this room's youtube vids
         this.checkDirectory(dir); // Check if it exists and if not create it
 
@@ -27,7 +27,16 @@ const YouTubeService = {
 
         ytdl(`https://${url}`).pipe(fs.createWriteStream(`${vidPath}.flv`)); // Grab the vid and store it to the local filesystem
 
-        return `${vidPath}.flv`; // Return this path to the client for accessing the video and database storage
+        serialPlaylistEntry.video_path = `${vidPath}.flv`; // Set the video_path parameter in the serialPlaylistEntry
+
+        let { db_room_id, video_path } = serialPlaylistEntry; // Destructure these parameters
+    
+        let addToDB = { // Compose the new serialPlayListEntry to add to the database
+          room_id: db_room_id,
+          video_path: video_path
+        }
+
+        return addToDB; // Return this object so that it can be inserted into the database
     }
 }
 
