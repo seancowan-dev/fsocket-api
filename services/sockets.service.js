@@ -1,6 +1,7 @@
 // This service is for calling the SocketDBService, this is done in order to further separate concerns
 // Code to actually manipulate the DB should be separate from code to prepare data between DB and client
 const SocketDBService = require('../db_services/socket.database.service');
+const YouTubeService = require('../services/youtube.service');
 const { removeRoomMember } = require('../db_services/socket.database.service');
 
 const SocketsService = {
@@ -32,26 +33,72 @@ const SocketsService = {
     // Update
         // Users
         
-        //Add
-        addUserToRoom(io, database, serialUser) {
-            SocketDBService.addUserToRoom(database, serialUser).then(result => {
-                io.sockets.emit('userAddedToRoom', serialUser);
+        // Add
+        addUserToRoom(io, database, serialUser) { // Pass in the io, db and serialized user objects
+            SocketDBService.addUserToRoom(database, serialUser).then(result => { // Call the DB service to add the user to the specified room
+                io.sockets.emit('userAddedToRoom', serialUser); // Emit the serial user to the client to confirm that they have been added
             })
-            .catch(err => {
+            .catch(err => { // Since its possible for a room to be open on a user's client whilst the room has actually been closed, return false if the operation fails
                 io.sockets.emit('userAddedToRoom', false);
             });
         },
 
-        //Remove/Delete
-        removeRoomMember(io, database, serialUser) {
-            SocketDBService.removeRoomMember(database, serialUser.room_id, serialUser.user_id).then(result => {
-                io.sockets.emit('removedUserFromRoom', serialUser);
+        // Remove/Delete
+        removeRoomMember(io, database, serialUser) { // Pass in the io, db and serialized user objects
+            SocketDBService.removeRoomMember(database, serialUser.room_id, serialUser.user_id).then(result => { // Call the DB service to remove the user from the specified room
+                io.sockets.emit('removedUserFromRoom', serialUser); // Emit the serial user to the client to confirm that they have been removed
             })
-            .catch(err => {
+            .catch(err => { // Since its possible for a room to be open on a user's client whilst the room has actually been closed, return false if the operation fails
                 io.sockets.emit('removedUserFromRoom', false);
             });
         },
         
+        // Messages
+
+        // Add/Send
+        sendMessage(io, database, serialMessage) { // Pass in the io, db and serialized message objects
+            SocketDBService.sendMessage(database, serialMessage).then(result => { // Call the DB service to send a message to the server
+                io.sockets.emit('messageSent', result); // Emit the message to the client for use in the specific room
+              })
+              .catch(err => { // Since its possible for a room to be open on a user's client whilst the room has actually been closed, return false if the operation fails
+                io.sockets.emit('messageSent', false);
+              });
+        },
+
+        // Read/Get Messages [by room]
+        getRoomMessages(io, database, room_id) { // Pass in the io and db objects and the room id
+            SocketDBService.getRoomMessages(database, room_id).then(result => { // Call the DB service to retrieve messages from the database
+                io.sockets.emit('receiveMessages', result); // Emit the found messages to the client for use in the specific room
+              })
+              .catch(err => { // Since its possible for a room to be open on a user's client whilst the room has actually been closed, return false if the operation fails
+                io.sockets.emit('receiveMessages', false);
+              });
+        },
+    
+    // Room Content Management (video)
+
+        // Playlists
+            // Create
+            addToPlaylist(io, database, serialPlaylistEntry) { // Pass in the io, db and serialized playlist objects
+                let addToDB = YouTubeService.saveVideoStreamYT(serialPlaylistEntry.room_id, serialPlaylistEntry.video_url, serialPlaylistEntry); // Call the YouTube service to save the video to the server's filesystem
+
+                SocketDBService.addPlaylistEntry(database, addToDB).then(result => { // Call the DB service to add the path to the video to the playlist for the specific room
+                  io.sockets.emit('playlistEntryAdded', result); // Emit the playlist entry to the client to confirm its success
+                })
+                .catch(err => { // Since its possible for a room to be open on a user's client whilst the room has actually been closed, return false if the operation fails
+                  io.sockets.emit('playistEntryAdded', false);
+                });
+            },
+
+            // Read [by room]
+            getPlaylist(io, database, room_id) {  // Pass in the io and db objects and the room id
+                SocketDBService.getPlaylistEntries(database, room_id).then(result => {  // Call the DB service to retrieve the playlists entries for the specific room from the database
+                    io.sockets.emit('retrievedPlaylist', result);  // Emit the playlist entries to the client so that they can listed in the host's playlist
+                })
+                .catch(err => { // Since its possible for a room to be open on a user's client whilst the room has actually been closed, return false if the operation fails
+                      io.sockets.emit('retrievedPlaylist', false);
+                });
+            }
 };
 
 module.exports = SocketsService;

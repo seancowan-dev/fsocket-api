@@ -11,6 +11,7 @@ const YouTubeService = require('../services/youtube.service');
 const app = express();  // Required Boilerplate --end
 const toolsRouter = require('../routing/tools.routes'); // Routing Import --start
 const { serialRoomOut } = require('../serializers/serializers');
+const { Socket } = require('dgram');
 
 const morganOption = (NODE_ENV === 'production')
   ? 'tiny'
@@ -67,44 +68,22 @@ io.sockets.on('connection', (socket) => { // Establish base WebSocket connection
       // Add User
       socket.on('addUserToRoom', (serialUser) => {
         SocketsService.addUserToRoom(io, database, serialUser);
-        // SocketDBService.addUserToRoom(database, serialUser).then(result => {
-        //   io.sockets.emit('userAddedToRoom', serialUser);
-        // })
-        // .catch(err => {
-        //   io.sockets.emit('userAddedToRoom', false);
-        // });
       });
 
       // Delete User
       socket.on('removeUserFromRoom', (serialUser) => {
         SocketsService.removeRoomMember(io, database, serialUser);
-        // SocketDBService.removeRoomMember(database, serialUser.room_id, serialUser.user_id).then(result => {
-        //   io.sockets.emit('removedUserFromRoom', serialUser);
-        // })
-        // .catch(err => {
-        //   io.sockets.emit('removedUserFromRoom', false);
-        // });
       });
 
     // Messages
       // Add (send) Message
       socket.on('sendMessage', (serialMessage) => {
-        SocketDBService.sendMessage(database, serialMessage).then(result => {
-          io.sockets.emit('messageSent', result);
-        })
-        .catch(err => {
-          io.sockets.emit('messageSent', false);
-        });
+        SocketsService.sendMessage(io, database, serialMessage);
       });
 
       // Read (get) Messages [by room]
       socket.on('getRoomMessages', (room_id) => {
-        SocketDBService.getRoomMessages(database, room_id).then(result => {
-          io.sockets.emit('receiveMessages', result);
-        })
-        .catch(err => {
-          io.sockets.emit('receiveMessages', false);
-        });
+        SocketsService.getRoomMessages(io, database, room_id);
       });
 
   ////// [end of] WebSockets for room management
@@ -112,26 +91,14 @@ io.sockets.on('connection', (socket) => { // Establish base WebSocket connection
     // Playlists
       // Create
       socket.on('addToPlaylist', (serialPlaylistEntry) => {
-        let addToDB = YouTubeService.saveVideoStreamYT(serialPlaylistEntry.room_id, serialPlaylistEntry.video_url, serialPlaylistEntry);
-
-        SocketDBService.addPlaylistEntry(database, addToDB).then(result => {
-          io.sockets.emit('playlistEntryAdded', result);
-        })
-        .catch(err => {
-          io.sockets.emit('playistEntryAdded', false);
-        });
+        SocketsService.addToPlaylist(io, database, serialPlaylistEntry);
       });
 
       // Read
       socket.on('getPlaylist', (room_id) => {
-        SocketDBService.getPlaylistEntries(database, room_id).then(result => {
-          io.sockets.emit('retrievedPlaylist', result);
-          })
-          .catch(err => {
-            io.sockets.emit('retrievedPlaylist', false);
-          });
-        });
+        SocketsService.getPlaylist(io, database, room_id);
       });
+});
 
 //////// [end of] WebSocket routes ////////
 
