@@ -3,6 +3,8 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
+const serveStatic = require('serve-static');
 const serializers = require('../serializers/serializers');
 const { NODE_ENV, SERVER_URL, ORIGIN_URL, PORT } = require('./config');
 const SocketDBService = require('../db_services/socket.database.service');
@@ -10,6 +12,7 @@ const SocketsService = require('../services/sockets.service');
 const YouTubeService = require('../services/youtube.service');
 const app = express();  // Required Boilerplate --end
 const toolsRouter = require('../routing/tools.routes'); // Routing Import --start
+const streamsRouter = require('../routing/streams.routes');
 const { serialRoomOut } = require('../serializers/serializers');
 const { Socket } = require('dgram');
 
@@ -26,6 +29,7 @@ app.use(cors({
 
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
+const ss = require('socket.io-stream');
 
 server.listen(PORT, () => {
     console.log(`Server listening at ${SERVER_URL}`)
@@ -33,6 +37,7 @@ server.listen(PORT, () => {
 
 // HTTP routes
 app.use('/site/tools', toolsRouter);
+app.use('/site/streams/', streamsRouter);
 
 
 // [start of] WebSocket 'routes' //
@@ -41,7 +46,6 @@ app.use('/site/tools', toolsRouter);
 // Connect a socket when a user requests a socket
 io.sockets.on('connection', (socket) => { // Establish base WebSocket connection
   let database = app.get('db') // Get the DB info
-
   socket.emit('connected', { message: 'Socket Connected' }); // Emit a confirmation event to the client
 
   // Begin Routes //
@@ -61,8 +65,14 @@ io.sockets.on('connection', (socket) => { // Establish base WebSocket connection
   });
 
   // Update
-    // 'Updating' a chat room involves adding and deleting users or content from the chatroom
-    // Those functions perform the update operations
+    //This is the only function for updating a room directly in the typical definition of update for CRUD operations
+    //The only time the app should need to update the room itself is if the ownership (control of the video player) of the room has been handed off to someone else
+      socket.on('updateRoomOwner', (serialRoom) => {
+        SocketsService.updateRoomOwner(io, database, serialRoom);
+      })
+
+    // 'Updating' a chat room also involves adding and deleting users or content from the chatroom
+    // These functions perform the update operations
 
     // Users
       // Add User
@@ -91,12 +101,21 @@ io.sockets.on('connection', (socket) => { // Establish base WebSocket connection
     // Playlists
       // Create
       socket.on('addToPlaylist', (serialPlaylistEntry) => {
+        console.log('adding to playlist');
         SocketsService.addToPlaylist(io, database, serialPlaylistEntry);
       });
 
-      // Read
+      // Read [playlist by room]
       socket.on('getPlaylist', (room_id) => {
         SocketsService.getPlaylist(io, database, room_id);
+      });
+
+      // Read [playlist entries]
+      ss(socket).on('stream', (serialPlaylistEntry) => {
+        console.log('stream request seen');
+        console.log('with room id: ' + serialPlaylistEntry.room_id);
+        console.log('and with object: ' + serialPlaylistEntry);
+        SocketsService.playYTVideo(io, ss, serialPlaylistEntry.room_id, serialPlaylistEntry);
       });
 });
 

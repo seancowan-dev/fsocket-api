@@ -11,7 +11,7 @@ const SocketDBService = {
         });
     },
     getRoom(knex, name) {
-        return knex.raw(`SELECT r.id, r.name, r.owner, r.description, r.password, r.created_at, m.id as member_id, m.user_id, m.room_id
+        return knex.raw(`SELECT r.id, r.name, r.owner, r.description, r.password, r.created_at, m.id as member_id, m.user_id, m.room_id, m.name as member_name
         FROM user_rooms r
         FULL JOIN room_members m
         ON r.id = m.room_id
@@ -19,7 +19,7 @@ const SocketDBService = {
         ORDER BY r.id`)
     },
     getAllRooms(knex) { // This function performs of a full join of all entries user_rooms and room_members, this data is later parsed by the client
-        return knex.raw(`SELECT r.id, r.name, r.owner, r.description, r.password, r.created_at, m.id as member_id, m.user_id, m.room_id
+        return knex.raw(`SELECT r.id, r.name, r.owner, r.description, r.password, r.created_at, m.id as member_id, m.user_id, m.room_id, m.name as member_name
         FROM user_rooms r
         FULL JOIN room_members m
         ON r.id = m.room_id
@@ -28,7 +28,7 @@ const SocketDBService = {
     updateRoom(knex, id, serial) {
         return knex.from('user_rooms')
         .where({ id })
-        .update(serial)
+        .update({ owner: serial.owner})
     },
     deleteRoom(knex, id) {
         return knex('user_rooms').where({ id }).delete();
@@ -71,7 +71,6 @@ const SocketDBService = {
         .where({ room_id })
     },
     addPlaylistEntry(knex, serial) {
-        console.log("reached the addPlaylistEntry: " + serial);
         return knex
         .insert(serial)
         .into('room_playlist')

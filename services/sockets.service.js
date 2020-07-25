@@ -2,6 +2,7 @@
 // Code to actually manipulate the DB should be separate from code to prepare data between DB and client
 const SocketDBService = require('../db_services/socket.database.service');
 const YouTubeService = require('../services/youtube.service');
+const fs = require('fs');
 const { removeRoomMember } = require('../db_services/socket.database.service');
 
 const SocketsService = {
@@ -22,6 +23,15 @@ const SocketsService = {
               io.sockets.emit('roomCreated', result); // Emit the DB room to confirm to the client that insertion was successful, and to trigger an update on the client side for room listings
             });
           }); 
+    },
+
+    // Update [room owner]
+    updateRoomOwner(io, database, serialRoom) { // Pass in the io, db and serialized room objects
+        SocketDBService.updateRoom(database, serialRoom.id, serialRoom).then(res => { // Call the DB service to update serialized room
+            SocketDBService.getRoom(database, serialRoom.name).then(result => { // Call the DB service to emit the actual [updated] room entry in the DB
+                io.sockets.emit('roomOwnerUpdated', result.rows[0].owner); // Emit the updated room from the DB to the client
+            })
+        })
     },
     
     // Delete
@@ -81,8 +91,9 @@ const SocketsService = {
             // Create
             addToPlaylist(io, database, serialPlaylistEntry) { // Pass in the io, db and serialized playlist objects
                 let addToDB = YouTubeService.saveVideoStreamYT(serialPlaylistEntry.room_id, serialPlaylistEntry.video_url, serialPlaylistEntry); // Call the YouTube service to save the video to the server's filesystem
-
+                console.log('adding to playlist stage 2');
                 SocketDBService.addPlaylistEntry(database, addToDB).then(result => { // Call the DB service to add the path to the video to the playlist for the specific room
+                    console.log('addedto playlist emit');
                   io.sockets.emit('playlistEntryAdded', result); // Emit the playlist entry to the client to confirm its success
                 })
                 .catch(err => { // Since its possible for a room to be open on a user's client whilst the room has actually been closed, return false if the operation fails
@@ -98,6 +109,18 @@ const SocketsService = {
                 .catch(err => { // Since its possible for a room to be open on a user's client whilst the room has actually been closed, return false if the operation fails
                       io.sockets.emit('retrievedPlaylist', false);
                 });
+            },
+
+            // Read (play video) - // This function indicates to the client a video is ready to play
+            playYTVideo(io, ss, room_id, serialPlaylistEntry) { // Pass in the io and db object, the room id, and the YouTube watch code
+                let vid_path = YouTubeService.getYouTubePath(room_id, serialPlaylistEntry); // Attempt to get the path to the video for the client
+                
+                if (vid_path !== false) { // If there is actually video data send the path to the client
+                    io.sockets.emit('video-data-ready', serialPlaylistEntry);
+                }
+                else {  // Otherwise send an error message
+                    io.sockets.emit('video-data-ready', "Could not find that video, perhaps the host closed the room while you were away?");
+                }
             }
 };
 

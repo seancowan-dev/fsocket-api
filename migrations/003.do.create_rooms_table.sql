@@ -6,5 +6,6 @@ CREATE TABLE IF NOT EXISTS
         description VARCHAR(128) NOT NULL,
         password VARCHAR(128),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY(id)
       )
