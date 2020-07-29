@@ -91,14 +91,11 @@ const SocketsService = {
             // Create
             addToPlaylist(io, database, serialPlaylistEntry) { // Pass in the io, db and serialized playlist objects
                 let addToDB = YouTubeService.getYoutubeCode(serialPlaylistEntry.video_url, serialPlaylistEntry); // Call the YouTube service to save the video to the server's filesystem
-                console.log('adding to playlist stage 2: checking if exists');
                 SocketDBService.getSinglePlaylistEntry(database, addToDB).then(result => {
                     let exists = result.length > 0 ? true : false;
 
                     if(exists === false) { // If we found no existing entry, then its safe to add the entry
-                        console.log('entry does not exist');
                         SocketDBService.addPlaylistEntry(database, addToDB).then(addResult => { // Call the DB service to add the path to the video to the playlist for the specific room
-                            console.log('addedto playlist emit');
                             console.log(addResult);
                             // Get all the entries for this room to send back to the client
                             this.getPlaylist(io, database, addToDB.room_id);
@@ -108,7 +105,6 @@ const SocketsService = {
                         });
                     }
                     else { // Otherwise emit false so the client knows the entry already exist
-                        console.log('entry already exists');
                         io.sockets.emit('playistEntryAdded', false);
                     }
                 })
@@ -117,23 +113,25 @@ const SocketsService = {
 
             // Read [by room]
             getPlaylist(io, database, room_id, getListOnly = false) {  // Pass in the io and db objects and the room id
-                console.log('getting the playlist entries');
                 SocketDBService.getPlaylistEntries(database, room_id).then(playlistEntries => {  // Call the DB service to retrieve the playlists entries for the specific room from the database
-                    console.log('got the playlist entries');
-
-                    // If the query submits with no 4th property, then that means the client only wants the list of YT watch codes, not the full list of YT data objects
-                    if (getListOnly === false) { // False only send watch codes
-                        io.sockets.emit('playlistEntryAdded', playlistEntries); // Emit the playlist entries to the client so that they can listed in the host's playlist
+                    let listItems;
+                    if (getListOnly === false) { // For both false and true the same thing happens, they are just responding to different events
+                        listItems = playlistEntries.map(item => { // Map the video_path/watch code
+                            return item.video_path;
+                        });
+                        this.getYouTubeVideoInfo(listItems, 'snippet, contentDetails').then(ytObj => { // Send all the items to youtube API and return the response
+                            ytObj.fromRoom = room_id;   
+                            io.sockets.emit('playlistEntryAdded', ytObj); // Emit the playlist entries to the client so that they can listed in the host's playlist
+                        })
                     } 
                     if (getListOnly === true) { // True so send completed YT data objects using the YT API
-                        let listItems = playlistEntries.map(item => { // Map the video_path/watch code
+                        listItems = playlistEntries.map(item => { // Map the video_path/watch code
                             return item.video_path;
                         });                        
                         this.getYouTubeVideoInfo(listItems, 'snippet, contentDetails').then(ytObj => { // Send all the items to youtube API and return the response
                             ytObj.fromRoom = room_id;
                             io.sockets.emit('retrievedPlaylistEntries', ytObj);
                         })
-                        console.log('emitting all entries');
                     }
                     
                 })
