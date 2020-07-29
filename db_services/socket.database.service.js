@@ -16,7 +16,7 @@ const SocketDBService = {
         FULL JOIN room_members m
         ON r.id = m.room_id
         WHERE r.name = '${name}'
-        ORDER BY r.id`)
+        ORDER BY r.id`);
     },
     getAllRooms(knex) { // This function performs of a full join of all entries user_rooms and room_members, this data is later parsed by the client
         return knex.raw(`SELECT r.id, r.name, r.owner, r.description, r.password, r.created_at, m.id as member_id, m.user_id, m.room_id, m.name as member_name
@@ -28,7 +28,7 @@ const SocketDBService = {
     updateRoom(knex, id, serial) {
         return knex.from('user_rooms')
         .where({ id })
-        .update({ owner: serial.owner})
+        .update({ owner: serial.owner});
     },
     deleteRoom(knex, id) {
         return knex('user_rooms').where({ id }).delete();
@@ -40,7 +40,10 @@ const SocketDBService = {
         .into('room_members')
         .returning('*')
         .then(rows => {
-            return rows[0]
+            return knex
+            .from('room_members')
+            .select('*')
+            .where('room_id', serial.room_id);
         });
     },
     getRoomMembers(knex, room_id) {
@@ -68,7 +71,7 @@ const SocketDBService = {
         return knex
         .from('user_messages')
         .select('*')
-        .where({ room_id })
+        .where({ room_id });
     },
     addPlaylistEntry(knex, serial) {
         return knex
@@ -79,10 +82,16 @@ const SocketDBService = {
             return rows[0];
         });
     },
+    getSinglePlaylistEntry(knex, serial) {
+        return knex
+        .from('room_playlist')
+        .where('room_id', serial.room_id)
+        .andWhere('video_path', serial.video_path);
+    },
     getPlaylistEntries(knex, room_id) {
         return knex
         .from('room_playlist')
-        .where({ room_id })
+        .where({ room_id });
     }
 }
 

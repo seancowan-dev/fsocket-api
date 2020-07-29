@@ -3,9 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const ytdl = require('ytdl-core');
 const appDir = path.dirname(require.main.filename);
-const config = require('../src/config');
 
 const YouTubeService = {
     checkDirectoryCreate(dir) { // Each room has a streams directory stored under its UUID, this checks to see if it exists and creates if it does
@@ -24,19 +22,12 @@ const YouTubeService = {
             return true;
         }
     },
-    saveVideoStreamYT(in_room_id, url, serialPlaylistEntry) {
-        let dir = `./${in_room_id}/youtube`; // Set the dir for this room's youtube vids
-        this.checkDirectoryCreate(dir); // Check if it exists and if not create it
+    getYoutubeCode(url, serialPlaylistEntry) {
 
         let urlParts = url.toString().split("/"); // Split the URL from client
-        let yt = urlParts[0].substring(0, urlParts[0].length - 4); // We only want the name 'youtube' as the folder path
         let watch = urlParts[1].substring(8, urlParts[1].length); // Only get the watch code for the MP4
 
-        let vidPath = path.join(appDir, "streams", in_room_id, yt, watch); // Complete new absolute path to store the vid
-
-        ytdl(`https://${url}`).pipe(fs.createWriteStream(`${vidPath}.mp4`)); // Grab the vid and store it to the local filesystem
-
-        serialPlaylistEntry.video_path = `${vidPath}.mp4`; // Set the video_path parameter in the serialPlaylistEntry
+        serialPlaylistEntry.video_path = `${watch}`; // Set the video_path parameter in the serialPlaylistEntry
 
         let { room_id, video_path } = serialPlaylistEntry; // Destructure these parameters
     

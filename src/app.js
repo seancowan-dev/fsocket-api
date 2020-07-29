@@ -3,18 +3,10 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
-const path = require('path');
-const serveStatic = require('serve-static');
-const serializers = require('../serializers/serializers');
 const { NODE_ENV, SERVER_URL, ORIGIN_URL, PORT } = require('./config');
-const SocketDBService = require('../db_services/socket.database.service');
 const SocketsService = require('../services/sockets.service');
-const YouTubeService = require('../services/youtube.service');
 const app = express();  // Required Boilerplate --end
-const toolsRouter = require('../routing/tools.routes'); // Routing Import --start
-const streamsRouter = require('../routing/streams.routes');
 const { serialRoomOut } = require('../serializers/serializers');
-const { Socket } = require('dgram');
 
 const morganOption = (NODE_ENV === 'production')
   ? 'tiny'
@@ -29,16 +21,10 @@ app.use(cors({
 
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
-const ss = require('socket.io-stream');
 
 server.listen(PORT, () => {
     console.log(`Server listening at ${SERVER_URL}`)
 });
-
-// HTTP routes
-app.use('/site/tools', toolsRouter);
-app.use('/site/streams/', streamsRouter);
-
 
 // [start of] WebSocket 'routes' //
 // Note: WebSockets don't use routes, they have to live in the app root
@@ -57,7 +43,7 @@ io.sockets.on('connection', (socket) => { // Establish base WebSocket connection
   });
   // Create
   socket.on('createRoom', (serialized) => { // Create a room
-    SocketsService.createRoom(io, database, serialized);
+    SocketsService.createRoom(io, database, serialized, socket);
   });
   // Delete
   socket.on('deleteRoom', (id) => { // Delete a room
@@ -101,21 +87,17 @@ io.sockets.on('connection', (socket) => { // Establish base WebSocket connection
     // Playlists
       // Create
       socket.on('addToPlaylist', (serialPlaylistEntry) => {
-        console.log('adding to playlist');
         SocketsService.addToPlaylist(io, database, serialPlaylistEntry);
       });
 
       // Read [playlist by room]
       socket.on('getPlaylist', (room_id) => {
-        SocketsService.getPlaylist(io, database, room_id);
+        SocketsService.getPlaylist(io, database, room_id, true);
       });
 
-      // Read [playlist entries]
-      ss(socket).on('stream', (serialPlaylistEntry) => {
-        console.log('stream request seen');
-        console.log('with room id: ' + serialPlaylistEntry.room_id);
-        console.log('and with object: ' + serialPlaylistEntry);
-        SocketsService.playYTVideo(io, ss, serialPlaylistEntry.room_id, serialPlaylistEntry);
+      // Read / Action - tells the client in a specific room to start streaming the specified video
+      socket.on('loadVideo', (serialPlaylistEntry) => {
+        SocketsService.loadYTVid(io, serialPlaylistEntry);
       });
 });
 
@@ -127,7 +109,6 @@ app.use(function errorHandler(error, req, res, next) {
         if (NODE_ENV === 'production') {
             response = { error: { message: 'server error' } };
         } else {
-            console.error(error);
             response = { message: error.message, error };
         }
         res.status(500).json(response);
