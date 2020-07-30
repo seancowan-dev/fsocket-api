@@ -5,6 +5,3 @@ module.exports = {
     ORIGIN_URL: "https://fsocket-client-git-project-complete.seancowan-dev.now.sh/",
     DATABASE_URL: process.env.DATABASE_URL || "postgresql://dunder_mifflin:password@localhost/fsocket"
   }
-
-  //    ORIGIN_URL: "https://fsocket-client-git-project-complete.seancowan-dev.now.sh/" - for live
-  //    ORIGIN_URL: "http://localhost:3000" - for dev
