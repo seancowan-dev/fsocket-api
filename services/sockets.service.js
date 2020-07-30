@@ -30,7 +30,7 @@ const SocketsService = {
         SocketDBService.updateRoom(database, serialRoom.id, serialRoom).then(res => { // Call the DB service to update serialized room
             SocketDBService.getRoom(database, serialRoom.name).then(result => { // Call the DB service to emit the actual [updated] room entry in the DB
                 if (result.rows[0] !== undefined) {
-                    io.sockets.emit('roomOwnerUpdated', result.rows[0].owner); // Emit the updated room from the DB to the client
+                    io.sockets.emit('roomOwnerUpdated', result.rows[0]); // Emit the updated room from the DB to the client
                 }
             })
         })
